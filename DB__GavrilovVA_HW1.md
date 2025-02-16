@@ -51,8 +51,8 @@ create table customer (
   job_title text,
   job_industry_category text,
   wealth_segment text,
-  deceased_indicator boolean,
-  owns_car boolean,
+  deceased_indicator text,
+  owns_car text,
   location_id integer REFERENCES location(location_id),
   property_valuation integer
 );
@@ -74,7 +74,7 @@ create table transaction (
   product_id integer,
   customer_id integer REFERENCES customer(customer_id),
   transaction_date text,
-  online_order boolean,
+  online_order text,
   order_status text
 );
 
