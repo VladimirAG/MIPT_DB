@@ -73,3 +73,59 @@ order by order_count;
 ```
 ![image](https://github.com/user-attachments/assets/b4330eae-de6c-4373-aacf-66b4bd87d9d7)
 
+#### Задание 4. Найти по всем клиентам сумму всех транзакций (list_price), максимум, минимум и количество транзакций, отсортировав результат по убыванию суммы транзакций и количества клиентов. Выполнить двумя способами: используя только group by и используя только оконные функции. Сравнить результат.
+```postgresql
+select c.customer_id, sum(list_price) as sum_price, min(list_price) as min_price, max(list_price) as max_price, count(t.transaction_date) as trans_count
+from transaction_20250301 t 
+inner join customer_20250301 c 
+on t.customer_id  = c.customer_id
+group by c.customer_id
+order by sum_price desc, trans_count desc;
+```
+![image](https://github.com/user-attachments/assets/29dccca1-9bf6-4eda-8128-fed954e1a227)
+
+```postgresql
+with all_clients_tr_sum as (
+	select distinct *,
+			row_number() over(partition by c.customer_id order by c.customer_id desc) as row_numb,
+			sum(t.list_price) over(partition by c.customer_id) as sum_price,
+			min(t.list_price) over(partition by c.customer_id) as min_price,
+			max(t.list_price) over(partition by c.customer_id) as max_price,
+			count(t.transaction_id) over(partition by c.customer_id) as trans_count
+	from transaction_20250301 t
+	inner join customer_20250301 c on t.customer_id = c.customer_id
+)
+select *
+from all_clients_tr_sum
+where row_numb = 1
+order by sum_price desc, trans_count desc;
+```
+![image](https://github.com/user-attachments/assets/7136c61d-d4d2-4563-8ac7-560d658566b4)
+
+#### Задание 5. Найти имена и фамилии клиентов с минимальной/максимальной суммой транзакций за весь период (сумма транзакций не может быть null). Напишите отдельные запросы для минимальной и максимальной суммы.
+```postgresql
+select c.first_name, c.last_name, min(t.list_price) as min_price
+from customer_20250301 c 
+inner join transaction_20250301 t 
+on c.customer_id = t.customer_id
+group by c.first_name, c.last_name
+having min(t.list_price) = (
+	select min(t.list_price) as min_price
+	from transaction_20250301 t
+);
+```
+![image](https://github.com/user-attachments/assets/ba762ee1-8368-4951-a5df-f98163b2c18d)
+
+```postgresql
+select c.first_name, c.last_name, max(t.list_price) as max_price
+from customer_20250301 c 
+inner join transaction_20250301 t 
+on c.customer_id = t.customer_id
+group by c.first_name, c.last_name
+having max(t.list_price) = (
+	select max(t.list_price)
+	from transaction_20250301 t
+);
+```
+![image](https://github.com/user-attachments/assets/bda2708b-e7fd-48ee-8613-a800f5a928da)
+
