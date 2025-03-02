@@ -1,4 +1,4 @@
-# Найти имена и фамилии клиентов с минимальной/максимальной суммой транзакций за весь период (сумма транзакций не может быть null). Напишите отдельные запросы для минимальной и максимальной суммы.
+## Группировка данных и оконные функции
 
 ### 1. Создать таблицы со следующими структурами и загрузить данные из csv-файлов
 
@@ -102,6 +102,9 @@ order by sum_price desc, trans_count desc;
 ```
 ![image](https://github.com/user-attachments/assets/7136c61d-d4d2-4563-8ac7-560d658566b4)
 
+
+Запрос с помощью команды group by агрегирует данные и возвращает одну строку по каждому клиенту, в то время как запрос с оконными функциями не агрегирует данные, а добавляет значения к каждой транзакции.
+
 #### Задание 5. Найти имена и фамилии клиентов с минимальной/максимальной суммой транзакций за весь период (сумма транзакций не может быть null). Напишите отдельные запросы для минимальной и максимальной суммы.
 ```postgresql
 select c.first_name, c.last_name, min(t.list_price) as min_price
@@ -129,3 +132,34 @@ having max(t.list_price) = (
 ```
 ![image](https://github.com/user-attachments/assets/bda2708b-e7fd-48ee-8613-a800f5a928da)
 
+#### Задание 6. Вывести только самые первые транзакции клиентов. Решить с помощью оконных функций.
+```postgresql
+with first_clients_trans as (
+    select t.*, row_number() over(partition by c.customer_id order by t.transaction_date) as rownumb
+    from transaction_20250301 t
+    inner join customer_20250301 c on t.customer_id = c.customer_id
+)
+select *
+from first_clients_trans
+where rownumb = 1;
+```
+![image](https://github.com/user-attachments/assets/512b01bd-61d5-4dfc-9aa8-c50c96efd2b7)
+
+#### Задание 7. Вывести имена, фамилии и профессии клиентов, между транзакциями которых был максимальный интервал (интервал вычисляется в днях).
+```postgresql
+with client_trans as (
+	select c.first_name, c.last_name, c.job_title, t.transaction_date,
+	    lag(t.transaction_date) over (partition by c.customer_id order by t.transaction_date) as lag_date
+	from transaction_20250301 t
+	inner join customer_20250301 c on t.customer_id = c.customer_id
+),
+max_time_diff as (
+    select *, transaction_date - lag_date as time_diff
+    from client_trans
+)
+select first_name, last_name, job_title, time_diff
+from max_time_diff
+where time_diff is not null
+order by time_diff desc;
+```
+![image](https://github.com/user-attachments/assets/349bb0d4-fe25-4fb7-8330-8050c2a682ee)
